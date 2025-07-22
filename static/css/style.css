@@ -1,0 +1,52 @@
+body.jira-bg {
+    background: linear-gradient(135deg, #0052CC 0%, #2684FF 100%);
+    min-height: 100vh;
+    margin: 0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.login-container {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    padding: 2rem 2.5rem;
+    width: 350px;
+    text-align: center;
+}
+.jira-title {
+    color: #0052CC;
+    margin-bottom: 1.5rem;
+    font-size: 2.2rem;
+    letter-spacing: 2px;
+}
+input, select {
+    width: 100%;
+    padding: 0.7rem;
+    margin: 0.5rem 0;
+    border: 1px solid #dfe1e6;
+    border-radius: 8px;
+    font-size: 1rem;
+}
+button {
+    width: 100%;
+    padding: 0.8rem;
+    background: #0052CC;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 1rem;
+    transition: background 0.2s;
+}
+button:hover {
+    background: #2684FF;
+}
+#loginMsg {
+    margin-top: 1rem;
+    color: #e74c3c;
+    font-weight: bold;
+} 
