@@ -6,17 +6,17 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key')
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'your-jwt-secret-key')
 
-    # MySQL Configuration
-    MYSQL_HOST = os.environ.get('MYSQL_HOST', 'localhost')
-    MYSQL_USER = os.environ.get('MYSQL_USER', 'root')
-    MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD', 'hemanth')  # ✅ set your password here
-    MYSQL_DB = os.environ.get('MYSQL_DB', 'jira_clone')
-    MYSQL_PORT = int(os.environ.get('MYSQL_PORT', 3306))  # ✅ add this line
+    # Use DATABASE_URL from env if available, fallback to direct Render URI
+    SQLALCHEMY_DATABASE_URI = os.environ.get(
+        'DATABASE_URL',
+        'postgresql://jira_clone_db_user:OKdnwVe8v6SWtqCPKTSjZ0lkRdZYLMWJ@dpg-d1vku07gi27c738clt1g-a.oregon-postgres.render.com/jira_clone_db'
+    )
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    # File Upload Configuration
+    # File upload configs (optional)
     UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'static/uploads')
-    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16 MB
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024
 
-    # JWT Expiration Times (optional but useful)
+    # JWT tokens
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=24)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)

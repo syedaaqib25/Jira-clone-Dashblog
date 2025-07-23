@@ -1,17 +1,16 @@
 from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory, jsonify
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
-from flask_mysqldb import MySQL
+from flask_sqlalchemy import SQLAlchemy
 from config.config import Config
 import os
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
-
-# Load config
 app.config.from_object(Config)
-#see
-# MySQL
-app.mysql = MySQL(app)
+
+# SQLAlchemy (PostgreSQL)
+db = SQLAlchemy(app)
+app.db = db  # If you need it elsewhere
 
 # JWT
 app.config['JWT_SECRET_KEY'] = Config.JWT_SECRET_KEY
@@ -31,7 +30,7 @@ def expired_token_callback(jwt_header, jwt_payload):
 
 CORS(app, supports_credentials=True, resources={r"/*": {"origins": "*"}}, allow_headers=["Content-Type", "Authorization"])
 
-# Register blueprints
+# Blueprints
 from routes.auth import auth_bp
 from routes.projects import projects_bp
 from routes.issues import issues_bp
@@ -66,3 +65,7 @@ if __name__ == '__main__':
     app.run(debug=True)
 
 print(app.url_map)
+# Ensure the upload folder exists
+if not os.path.exists(app.config['UPLOAD_FOLDER']):
+    os.makedirs(app.config['UPLOAD_FOLDER'])
+    print(f"Upload folder created at: {app.config['UPLOAD_FOLDER']}")
