@@ -9,7 +9,7 @@ app = Flask(__name__, static_folder='static', template_folder='templates')
 
 # Load config
 app.config.from_object(Config)
-
+#see
 # MySQL
 app.mysql = MySQL(app)
 
