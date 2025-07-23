@@ -5,15 +5,15 @@ from flask_sqlalchemy import SQLAlchemy
 from config.config import Config
 import os
 
+# Flask App Setup
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.config.from_object(Config)
 
-# SQLAlchemy (PostgreSQL)
+# SQLAlchemy Initialization
 db = SQLAlchemy(app)
-app.db = db  # If you need it elsewhere
+app.db = db
 
-# JWT
-app.config['JWT_SECRET_KEY'] = Config.JWT_SECRET_KEY
+# JWT Setup
 jwt = JWTManager(app)
 
 @jwt.unauthorized_loader
@@ -28,9 +28,10 @@ def invalid_token_callback(callback):
 def expired_token_callback(jwt_header, jwt_payload):
     return jsonify({'msg': 'Token has expired'}), 401
 
+# Enable CORS
 CORS(app, supports_credentials=True, resources={r"/*": {"origins": "*"}}, allow_headers=["Content-Type", "Authorization"])
 
-# Blueprints
+# Register Blueprints
 from routes.auth import auth_bp
 from routes.projects import projects_bp
 from routes.issues import issues_bp
@@ -51,6 +52,7 @@ app.register_blueprint(board_bp)
 app.register_blueprint(notifications_bp)
 app.register_blueprint(sprint_bp)
 
+# Routes
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -61,11 +63,11 @@ def static_proxy(path):
         return render_template(path)
     return send_from_directory('static', path)
 
-if __name__ == '__main__':
-    app.run(debug=True)
-
-print(app.url_map)
-# Ensure the upload folder exists
+# Ensure upload folder exists
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
     print(f"Upload folder created at: {app.config['UPLOAD_FOLDER']}")
+
+# Entry Point
+if __name__ == '__main__':
+    app.run(debug=True)
