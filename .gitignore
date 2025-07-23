@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.env
+*.DS_Store
+
+# Environment variables and secrets
+.env
+.env.*
+
+# Flask specific
+instance/
+*.sqlite3
+*.db
+
+# IDE and OS
+.vscode/
+.idea/
+*.swp
+*.swo
+Thumbs.db
+.DS_Store
+
+# Logs and test cache
+*.log
+*.pot
+*.pyc
+*.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+
+# Byte-compiled / optimized / DLL files
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Render and deployment
+render.yaml
+
+# Static uploads
+static/uploads/
+
+# Migrations (optional if you recreate them each time)
+migrations/
