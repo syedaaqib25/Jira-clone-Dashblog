@@ -1,7 +1,9 @@
 from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory, jsonify
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
+# Database imports
+from models import db  # Shared SQLAlchemy instance
+from flask_mysqldb import MySQL
 from config.config import Config
 from dotenv import load_dotenv
 import os
@@ -13,9 +15,21 @@ load_dotenv()
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.config.from_object(Config)
 
-# ✅ SQLAlchemy Initialization
-db = SQLAlchemy(app)
-app.db = db
+# ✅ SQLAlchemy initialisation (uses shared instance from models)
+db.init_app(app)
+app.db = db  # make accessible via current_app.db
+
+# ✅ MySQL initialisation (for legacy/raw-SQL parts of the codebase)
+# Default configuration values can be overridden via environment variables.
+app.config.setdefault('MYSQL_HOST', os.environ.get('MYSQL_HOST', 'localhost'))
+app.config.setdefault('MYSQL_PORT', int(os.environ.get('MYSQL_PORT', '3306')))
+app.config.setdefault('MYSQL_USER', os.environ.get('MYSQL_USER', 'root'))
+app.config.setdefault('MYSQL_PASSWORD', os.environ.get('MYSQL_PASSWORD', ''))
+app.config.setdefault('MYSQL_DB', os.environ.get('MYSQL_DB', 'jira_clone'))
+
+mysql = MySQL(app)
+# Expose as attribute so models/routes can access via current_app.mysql
+app.mysql = mysql
 
 # ✅ JWT Setup
 jwt = JWTManager(app)
