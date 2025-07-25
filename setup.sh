@@ -37,23 +37,33 @@ pip install -r requirements.txt
 if [ ! -f ".env" ]; then
     echo "Creating .env file..."
     cat > .env << EOF
+# Flask Configuration
 SECRET_KEY=your-secret-key-change-this-in-production
 JWT_SECRET_KEY=your-jwt-secret-key-change-this-in-production
-DATABASE_URL=postgresql://username:password@localhost:5432/jira_clone_db
+
+# Database Configuration
+DATABASE_URL=postgresql://jira_clone_db_user:OKdnwVe8v6SWtqCPKTSjZ0lkRdZYLMWJ@dpg-d1vku07gi27c738clt1g-a.oregon-postgres.render.com/jira_clone_db
+
+# File Upload Configuration
 UPLOAD_FOLDER=static/uploads
+
+# Flask Environment
+FLASK_ENV=development
+FLASK_DEBUG=1
 EOF
-    echo ".env file created. Please update the values with your actual configuration."
+    echo ".env file created with your Render PostgreSQL database configuration."
 fi
 
 echo "Setup complete!"
 echo ""
-echo "To run the application:"
-echo "1. Activate the virtual environment: source venv/bin/activate"
-echo "2. Set up your PostgreSQL database and update DATABASE_URL in .env"
-echo "3. Run the database schema: psql -d your_database -f database_schema.sql"
-echo "4. Start the application: python app.py"
+echo "Next steps:"
+echo "1. Test the database connection: python3 test_db_connection.py"
+echo "2. If tables are missing, run the schema: psql <DATABASE_URL> -f database_schema.sql"
+echo "3. Start the application: python app.py"
 echo ""
-echo "Don't forget to:"
-echo "- Update SECRET_KEY and JWT_SECRET_KEY in .env with secure random values"
-echo "- Configure your PostgreSQL database connection"
-echo "- Set up proper environment variables for production deployment"
+echo "Your application is configured to use:"
+echo "- Render PostgreSQL database (already configured)"
+echo "- PostgreSQL driver (psycopg2-binary)"
+echo "- All models updated for PostgreSQL compatibility"
+echo ""
+echo "⚠️  IMPORTANT: Update SECRET_KEY and JWT_SECRET_KEY in .env with secure random values before production deployment!"
