@@ -1,26 +1,63 @@
-from flask import current_app as app
-import MySQLdb.cursors
+from flask import current_app
 
-def create_sprint(name, project_id, start_date, end_date):
-    cursor = app.mysql.connection.cursor()
-    cursor.execute("""
-        INSERT INTO sprints (name, project_id, start_date, end_date)
-        VALUES (%s, %s, %s, %s)
-    """, (name, project_id, start_date, end_date))
-    app.mysql.connection.commit()
-    return cursor.lastrowid
+def get_db():
+    return current_app.db
 
-def get_sprints(project_id):
-    cursor = app.mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute("SELECT * FROM sprints WHERE project_id = %s", (project_id,))
-    return cursor.fetchall()
+def create_sprint(name, project_id, start_date, end_date, status='Active'):
+    db = get_db()
+    cursor = db.engine.raw_connection().cursor()
+    try:
+        cursor.execute(
+            'INSERT INTO sprints (name, project_id, start_date, end_date, status) VALUES (%s, %s, %s, %s, %s) RETURNING id',
+            (name, project_id, start_date, end_date, status)
+        )
+        sprint_id = cursor.fetchone()[0]
+        db.engine.raw_connection().commit()
+        return sprint_id
+    finally:
+        cursor.close()
 
-def update_sprint(sprint_id, name, start_date, end_date):
-    cursor = app.mysql.connection.cursor()
-    cursor.execute("UPDATE sprints SET name = %s, start_date = %s, end_date = %s WHERE id = %s", (name, start_date, end_date, sprint_id))
-    app.mysql.connection.commit()
+def get_sprints_by_project(project_id):
+    db = get_db()
+    cursor = db.engine.raw_connection().cursor()
+    try:
+        cursor.execute('SELECT * FROM sprints WHERE project_id = %s', (project_id,))
+        rows = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+        return [dict(zip(columns, row)) for row in rows]
+    finally:
+        cursor.close()
+
+def get_sprint_by_id(sprint_id):
+    db = get_db()
+    cursor = db.engine.raw_connection().cursor()
+    try:
+        cursor.execute('SELECT * FROM sprints WHERE id = %s', (sprint_id,))
+        row = cursor.fetchone()
+        if row:
+            columns = [desc[0] for desc in cursor.description]
+            return dict(zip(columns, row))
+        return None
+    finally:
+        cursor.close()
+
+def update_sprint(sprint_id, name, start_date, end_date, status):
+    db = get_db()
+    cursor = db.engine.raw_connection().cursor()
+    try:
+        cursor.execute(
+            'UPDATE sprints SET name = %s, start_date = %s, end_date = %s, status = %s WHERE id = %s',
+            (name, start_date, end_date, status, sprint_id)
+        )
+        db.engine.raw_connection().commit()
+    finally:
+        cursor.close()
 
 def delete_sprint(sprint_id):
-    cursor = app.mysql.connection.cursor()
-    cursor.execute("DELETE FROM sprints WHERE id = %s", (sprint_id,))
-    app.mysql.connection.commit()
+    db = get_db()
+    cursor = db.engine.raw_connection().cursor()
+    try:
+        cursor.execute('DELETE FROM sprints WHERE id = %s', (sprint_id,))
+        db.engine.raw_connection().commit()
+    finally:
+        cursor.close()

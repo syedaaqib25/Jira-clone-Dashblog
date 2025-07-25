@@ -1,31 +1,63 @@
-from flask import current_app as app
-import MySQLdb.cursors
+from flask import current_app
+
+def get_db():
+    return current_app.db
 
 def create_project(name, description, priority, created_by):
-    cursor = app.mysql.connection.cursor()
-    cursor.execute(
-        'INSERT INTO projects (name, description, priority, created_by) VALUES (%s, %s, %s, %s)',
-        (name, description, priority, created_by)
-    )
-    app.mysql.connection.commit()
-    return cursor.lastrowid
+    db = get_db()
+    cursor = db.engine.raw_connection().cursor()
+    try:
+        cursor.execute(
+            'INSERT INTO projects (name, description, priority, created_by) VALUES (%s, %s, %s, %s) RETURNING id',
+            (name, description, priority, created_by)
+        )
+        project_id = cursor.fetchone()[0]
+        db.engine.raw_connection().commit()
+        return project_id
+    finally:
+        cursor.close()
 
 def get_project_by_id(project_id):
-    cursor = app.mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute('SELECT * FROM projects WHERE id = %s', (project_id,))
-    return cursor.fetchone()
+    db = get_db()
+    cursor = db.engine.raw_connection().cursor()
+    try:
+        cursor.execute('SELECT * FROM projects WHERE id = %s', (project_id,))
+        row = cursor.fetchone()
+        if row:
+            columns = [desc[0] for desc in cursor.description]
+            return dict(zip(columns, row))
+        return None
+    finally:
+        cursor.close()
 
 def get_all_projects():
-    cursor = app.mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute('SELECT * FROM projects')
-    return cursor.fetchall()
+    db = get_db()
+    cursor = db.engine.raw_connection().cursor()
+    try:
+        cursor.execute('SELECT * FROM projects')
+        rows = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+        return [dict(zip(columns, row)) for row in rows]
+    finally:
+        cursor.close()
 
 def update_project(project_id, name, description, priority):
-    cursor = app.mysql.connection.cursor()
-    cursor.execute('UPDATE projects SET name = %s, description = %s, priority = %s WHERE id = %s', (name, description, priority, project_id))
-    app.mysql.connection.commit()
+    db = get_db()
+    cursor = db.engine.raw_connection().cursor()
+    try:
+        cursor.execute(
+            'UPDATE projects SET name = %s, description = %s, priority = %s WHERE id = %s', 
+            (name, description, priority, project_id)
+        )
+        db.engine.raw_connection().commit()
+    finally:
+        cursor.close()
 
 def delete_project(project_id):
-    cursor = app.mysql.connection.cursor()
-    cursor.execute('DELETE FROM projects WHERE id = %s', (project_id,))
-    app.mysql.connection.commit()
+    db = get_db()
+    cursor = db.engine.raw_connection().cursor()
+    try:
+        cursor.execute('DELETE FROM projects WHERE id = %s', (project_id,))
+        db.engine.raw_connection().commit()
+    finally:
+        cursor.close()

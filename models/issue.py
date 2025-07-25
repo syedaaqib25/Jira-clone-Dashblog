@@ -1,86 +1,119 @@
 from flask import current_app
-import MySQLdb.cursors
+
+def get_db():
+    return current_app.db
 
 def create_issue(title, description, type_, status, priority, assignee_id, reporter_id, project_id, due_date, sprint_id=None):
-    cursor = current_app.mysql.connection.cursor()
-    cursor.execute('''
-        INSERT INTO issues (title, description, type, status, priority, assignee_id, reporter_id, project_id, created_at, due_date, sprint_id)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s, %s)
-    ''', (title, description, type_, status, priority, assignee_id, reporter_id, project_id, due_date, sprint_id))
-    current_app.mysql.connection.commit()
-    return cursor.lastrowid
+    db = get_db()
+    cursor = db.engine.raw_connection().cursor()
+    try:
+        cursor.execute('''
+            INSERT INTO issues (title, description, type, status, priority, assignee_id, reporter_id, project_id, created_at, due_date, sprint_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s, %s) RETURNING id
+        ''', (title, description, type_, status, priority, assignee_id, reporter_id, project_id, due_date, sprint_id))
+        issue_id = cursor.fetchone()[0]
+        db.engine.raw_connection().commit()
+        return issue_id
+    finally:
+        cursor.close()
 
 def get_issue_by_id(issue_id):
-    cursor = current_app.mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute('SELECT * FROM issues WHERE id = %s', (issue_id,))
-    return cursor.fetchone()
+    db = get_db()
+    cursor = db.engine.raw_connection().cursor()
+    try:
+        cursor.execute('SELECT * FROM issues WHERE id = %s', (issue_id,))
+        row = cursor.fetchone()
+        if row:
+            columns = [desc[0] for desc in cursor.description]
+            return dict(zip(columns, row))
+        return None
+    finally:
+        cursor.close()
 
 def get_issues_by_project(project_id):
-    cur = current_app.mysql.connection.cursor()
-    cur.execute("""
-        SELECT i.*, u.name as assignee_name
-        FROM issues i
-        LEFT JOIN users u ON i.assignee_id = u.id
-        WHERE i.project_id = %s
-        ORDER BY i.status, i.priority DESC, i.id DESC
-    """, (project_id,))
-    
-    rows = cur.fetchall()
+    db = get_db()
+    cursor = db.engine.raw_connection().cursor()
+    try:
+        cursor.execute("""
+            SELECT i.*, u.name as assignee_name
+            FROM issues i
+            LEFT JOIN users u ON i.assignee_id = u.id
+            WHERE i.project_id = %s
+            ORDER BY i.status, i.priority DESC, i.id DESC
+        """, (project_id,))
+        
+        rows = cursor.fetchall()
+        if not cursor.description:
+            return []
 
-    if cur.description is None:
-        cur.close()
-        return []
+        columns = [desc[0] for desc in cursor.description]
+        issues = []
+        for row in rows:
+            issue = dict(zip(columns, row))
+            issue['assignee_name'] = row[-1] if row[-1] else None
+            issues.append(issue)
 
-    columns = [desc[0] for desc in cur.description]
-    issues = []
-    for row in rows:
-        issue = dict(zip(columns, row))
-        issue['assignee_name'] = row[-1] if row[-1] else None
-        issues.append(issue)
-
-    cur.close()
-    return issues
+        return issues
+    finally:
+        cursor.close()
 
 def update_issue(issue_id, title, description, type_, status, priority, assignee_id, due_date, sprint_id=None):
-    cursor = current_app.mysql.connection.cursor()
-    cursor.execute('''
-        UPDATE issues
-        SET title = %s, description = %s, type = %s, status = %s, priority = %s, assignee_id = %s, due_date = %s, sprint_id = %s
-        WHERE id = %s
-    ''', (title, description, type_, status, priority, assignee_id, due_date, sprint_id, issue_id))
-    current_app.mysql.connection.commit()
+    db = get_db()
+    cursor = db.engine.raw_connection().cursor()
+    try:
+        cursor.execute('''
+            UPDATE issues
+            SET title = %s, description = %s, type = %s, status = %s, priority = %s, assignee_id = %s, due_date = %s, sprint_id = %s
+            WHERE id = %s
+        ''', (title, description, type_, status, priority, assignee_id, due_date, sprint_id, issue_id))
+        db.engine.raw_connection().commit()
+    finally:
+        cursor.close()
 
 def delete_issue(issue_id):
-    cursor = current_app.mysql.connection.cursor()
-    cursor.execute('DELETE FROM issues WHERE id = %s', (issue_id,))
-    current_app.mysql.connection.commit()
-    return cursor.rowcount > 0  # True if deleted, False if not found
+    db = get_db()
+    cursor = db.engine.raw_connection().cursor()
+    try:
+        cursor.execute('DELETE FROM issues WHERE id = %s', (issue_id,))
+        db.engine.raw_connection().commit()
+    finally:
+        cursor.close()
 
-# In models/issue.py
+def get_issues_by_sprint(sprint_id):
+    db = get_db()
+    cursor = db.engine.raw_connection().cursor()
+    try:
+        cursor.execute("""
+            SELECT i.*, u.name as assignee_name
+            FROM issues i
+            LEFT JOIN users u ON i.assignee_id = u.id
+            WHERE i.sprint_id = %s
+            ORDER BY i.status, i.priority DESC
+        """, (sprint_id,))
+        
+        rows = cursor.fetchall()
+        if not cursor.description:
+            return []
 
-def get_issues_by_project(project_id):
-    cur = current_app.mysql.connection.cursor()
-    cur.execute("SELECT * FROM issues WHERE project_id = %s", (project_id,))
-    rows = cur.fetchall()
-    # Convert rows to dicts as needed
-    issues = [dict(zip([col[0] for col in cur.description], row)) for row in rows]
-    cur.close()
-    return issues
+        columns = [desc[0] for desc in cursor.description]
+        return [dict(zip(columns, row)) for row in rows]
+    finally:
+        cursor.close()
 
-# ... existing imports ...
-from flask import current_app as app
+def assign_issue_to_sprint(issue_id, sprint_id):
+    db = get_db()
+    cursor = db.engine.raw_connection().cursor()
+    try:
+        cursor.execute('UPDATE issues SET sprint_id = %s WHERE id = %s', (sprint_id, issue_id))
+        db.engine.raw_connection().commit()
+    finally:
+        cursor.close()
 
-# ... existing code ...
-
-def get_issues_by_project(project_id):
-    cur = app.mysql.connection.cursor()
-    cur.execute("""
-        SELECT i.*, u.name as assignee_name
-        FROM issues i
-        LEFT JOIN users u ON i.assignee_id = u.id
-        WHERE i.project_id = %s
-    """, (project_id,))
-    rows = cur.fetchall()
-    issues = [dict(zip([col[0] for col in cur.description], row)) for row in rows]
-    cur.close()
-    return issues
+def unassign_issue_from_sprint(issue_id):
+    db = get_db()
+    cursor = db.engine.raw_connection().cursor()
+    try:
+        cursor.execute('UPDATE issues SET sprint_id = NULL WHERE id = %s', (issue_id,))
+        db.engine.raw_connection().commit()
+    finally:
+        cursor.close()
