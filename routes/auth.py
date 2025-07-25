@@ -25,17 +25,17 @@ def login():
     if not require_fields(data, ['email', 'password']):
         return jsonify({'msg': 'Missing fields'}), 400
     user = get_user_by_email(data['email'])
-    if not user or not check_password(user['password_hash'], data['password']):
+    if not user or not user.check_password(data['password']):
         return jsonify({'msg': 'Invalid credentials'}), 401
 
-    user_id = str(user['id'])  # ✅ IMPORTANT: Must be str or int
+    user_id = str(user.id)  # ✅ IMPORTANT: Must be str or int
     access_token = create_access_token(identity=user_id)
 
     return jsonify({
         'access_token': access_token,
         'user': {
-            'id': user['id'],
-            'name': user['name'],
-            'role': user['role']
+            'id': user.id,
+            'name': user.name,
+            'role': user.role
         }
     }), 200

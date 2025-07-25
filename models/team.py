@@ -1,30 +1,47 @@
 from flask import current_app
-import MySQLdb.cursors
 
-# type: ignore for linter on current_app.mysql usage
+def get_db():
+    return current_app.db
 
-def create_team(name, description, created_by):
-    cursor = current_app.mysql.connection.cursor()  # type: ignore
-    cursor.execute(
-        'INSERT INTO teams (name, description, created_by) VALUES (%s, %s, %s)',
-        (name, description, created_by)
-    )
-    current_app.mysql.connection.commit()  # type: ignore
-    return cursor.lastrowid
-
-def assign_team_to_project(team_id, project_id):
-    cursor = current_app.mysql.connection.cursor()  # type: ignore
-    cursor.execute(
-        'INSERT INTO project_teams (project_id, team_id) VALUES (%s, %s)',
-        (project_id, team_id)
-    )
-    current_app.mysql.connection.commit()  # type: ignore
-    return cursor.lastrowid
+def create_team(name, project_id):
+    db = get_db()
+    cursor = db.engine.raw_connection().cursor()
+    try:
+        cursor.execute(
+            'INSERT INTO teams (name, project_id) VALUES (%s, %s) RETURNING id',
+            (name, project_id)
+        )
+        team_id = cursor.fetchone()[0]
+        db.engine.raw_connection().commit()
+        return team_id
+    finally:
+        cursor.close()
 
 def get_teams_by_project(project_id):
-    cursor = current_app.mysql.connection.cursor(MySQLdb.cursors.DictCursor)  # type: ignore
-    cursor.execute(
-        'SELECT t.* FROM teams t JOIN project_teams pt ON t.id = pt.team_id WHERE pt.project_id = %s',
-        (project_id,)
-    )
-    return cursor.fetchall() 
+    db = get_db()
+    cursor = db.engine.raw_connection().cursor()
+    try:
+        cursor.execute('SELECT * FROM teams WHERE project_id = %s', (project_id,))
+        rows = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+        return [dict(zip(columns, row)) for row in rows]
+    finally:
+        cursor.close()
+
+def assign_team_to_project(team_id, project_id):
+    # This functionality might be handled by the create_team function
+    # or through project_users table for team membership
+    pass
+
+def get_team_by_id(team_id):
+    db = get_db()
+    cursor = db.engine.raw_connection().cursor()
+    try:
+        cursor.execute('SELECT * FROM teams WHERE id = %s', (team_id,))
+        row = cursor.fetchone()
+        if row:
+            columns = [desc[0] for desc in cursor.description]
+            return dict(zip(columns, row))
+        return None
+    finally:
+        cursor.close() 

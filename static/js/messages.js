@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ to, subject, body })
             });
             if (!res.ok) throw new Error();
-            console.log('Message sent, closing modal...'); // Debug log
+            // Message sent, closing modal
             closeCompose();
             document.getElementById('composeForm').reset();
             fetchMessages();
